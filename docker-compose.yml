@@ -1,0 +1,71 @@
+x-service-base: &service-base
+  working_dir: /app
+  volumes:
+    - .:/app
+
+services:
+  # ── Node 22 + drizzle-orm 0.44.0 (peerDependencies floor) ──
+  node22-drizzle44:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        NODE_VERSION: 22
+    environment:
+      DRIZZLE_VERSION: 0.44.0
+
+  # ── Node 22 + drizzle-orm 0.45.2 (current latest) ──
+  node22-drizzle45:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        NODE_VERSION: 22
+    environment:
+      DRIZZLE_VERSION: 0.45.2
+
+  # ── Node 24 + drizzle-orm 0.44.0 ──
+  node24-drizzle44:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        NODE_VERSION: 24
+    environment:
+      DRIZZLE_VERSION: 0.44.0
+
+  # ── Node 24 + drizzle-orm 0.45.2 ──
+  node24-drizzle45:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        NODE_VERSION: 24
+    environment:
+      DRIZZLE_VERSION: 0.45.2
+
+  # ── Node 26 + drizzle-orm 0.44.0 ──
+  node26-drizzle44:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        NODE_VERSION: 26
+    environment:
+      DRIZZLE_VERSION: 0.44.0
+
+  # ── Node 26 + drizzle-orm 0.45.2 ──
+  node26-drizzle45:
+    <<: *service-base
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        NODE_VERSION: 26
+    environment:
+      DRIZZLE_VERSION: 0.45.2

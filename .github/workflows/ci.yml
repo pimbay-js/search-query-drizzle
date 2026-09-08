@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [contrib]
+  push:
+    branches: [contrib]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Node ${{ matrix.node-version }} + drizzle-orm ${{ matrix.drizzle-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ['22', '24', '26']
+        drizzle-version: ['0.44.0', '0.45.2']
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      - run: npm install
+
+      - name: Pin drizzle-orm to matrix version
+        run: npm install --no-save "drizzle-orm@${{ matrix.drizzle-version }}"
+
+      - name: Typecheck
+        run: npm run js:typecheck
+
+      - name: Build
+        run: npm run js:build
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Functional tests
+        run: npm run test:functional
+
+  coverage-and-mutation:
+    name: Coverage + mutation testing (Node 22 + drizzle-orm 0.45.2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      - run: npm install
+
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Build
+        run: npm run js:build
+
+      - name: Tests with coverage
+        run: npm run test:coverage
+
+      - name: Mutation testing
+        run: npm run test:mutation
+
+  static-analysis:
+    name: Lint & format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      - run: npm install
+
+      - name: Lint
+        run: npm run js:lint
+
+      - name: Format check
+        run: npm run js:format
+
+  sync:
+    if: github.event_name == 'push'
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push contrib to Codeberg
+        run: |
+          git remote add codeberg https://oauth2:${{ secrets.CODEBERG_TOKEN }}@codeberg.org/pimbay-js/search-query-drizzle.git
+          git fetch codeberg contrib:refs/remotes/codeberg/contrib || true
+          git push codeberg HEAD:contrib --force

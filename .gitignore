@@ -1,0 +1,10 @@
+/.idea/
+/.settings/
+
+/dist/
+/node_modules/
+/package-lock.json
+/var/
+
+*.local
+!/**/.gitkeep

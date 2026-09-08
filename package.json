@@ -1,0 +1,91 @@
+{
+  "name": "@pimbay/search-query-drizzle",
+  "version": "0.0.0",
+  "description": "Drizzle ORM adapters and search-terms-to-SQL condition builder for @pimbay/search-query.",
+  "keywords": [
+    "search",
+    "pagination",
+    "drizzle",
+    "drizzle-orm",
+    "query-builder",
+    "sql"
+  ],
+  "license": "Unlicense",
+  "author": {
+    "name": "Jan Sarmir",
+    "email": "sarmir@pimbay.dev",
+    "url": "https://pimbay.dev"
+  },
+  "homepage": "https://pimbay.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://codeberg.org/pimbay-js/search-query-drizzle"
+  },
+  "bugs": {
+    "url": "https://github.com/pimbay-js/search-query-drizzle/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "docs"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "audit:prod": "npm audit --omit=dev",
+    "js:build": "tsc -p tsconfig.build.json",
+    "js:format": "prettier --check .",
+    "js:format:fix": "prettier --write .",
+    "js:lint": "eslint src test",
+    "js:lint:fix": "eslint src test --fix",
+    "js:typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run js:build",
+    "test:22-drizzle44": "docker compose run --rm node22-drizzle44 sh -c 'npm install && npm install --no-save \"drizzle-orm@$DRIZZLE_VERSION\" && npm run js:build && npm run test:unit && npm run test:functional'",
+    "test:22-drizzle45": "docker compose run --rm node22-drizzle45 sh -c 'npm install && npm install --no-save \"drizzle-orm@$DRIZZLE_VERSION\" && npm run js:build && npm run test:unit && npm run test:functional'",
+    "test:24-drizzle44": "docker compose run --rm node24-drizzle44 sh -c 'npm install && npm install --no-save \"drizzle-orm@$DRIZZLE_VERSION\" && npm run js:build && npm run test:unit && npm run test:functional'",
+    "test:24-drizzle45": "docker compose run --rm node24-drizzle45 sh -c 'npm install && npm install --no-save \"drizzle-orm@$DRIZZLE_VERSION\" && npm run js:build && npm run test:unit && npm run test:functional'",
+    "test:26-drizzle44": "docker compose run --rm node26-drizzle44 sh -c 'npm install && npm install --no-save \"drizzle-orm@$DRIZZLE_VERSION\" && npm run js:build && npm run test:unit && npm run test:functional'",
+    "test:26-drizzle45": "docker compose run --rm node26-drizzle45 sh -c 'npm install && npm install --no-save \"drizzle-orm@$DRIZZLE_VERSION\" && npm run js:build && npm run test:unit && npm run test:functional'",
+    "test:all": "npm run test:22-drizzle44 && npm run test:22-drizzle45 && npm run test:24-drizzle44 && npm run test:24-drizzle45 && npm run test:26-drizzle44 && npm run test:26-drizzle45",
+    "test:coverage": "vitest run --coverage test/unit test/functional",
+    "test:functional": "vitest run test/functional",
+    "test:mutation": "stryker run",
+    "test:unit": "vitest run test/unit"
+  },
+  "dependencies": {
+    "@pimbay/search-query": "^1.0.0"
+  },
+  "peerDependencies": {
+    "drizzle-orm": ">=0.44.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/typescript-checker": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
+    "@tony.ganchev/eslint-plugin-header": "^3.4.4",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^24.13.2",
+    "@vitest/coverage-v8": "^4.1.10",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-orm": "^0.45.2",
+    "eslint": "^10.6.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.63.0",
+    "vitest": "^4.1.10"
+  }
+}
