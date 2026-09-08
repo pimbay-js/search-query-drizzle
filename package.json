@@ -1,6 +1,6 @@
 {
   "name": "@pimbay/search-query-drizzle",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Drizzle ORM adapters and search-terms-to-SQL condition builder for @pimbay/search-query.",
   "keywords": [
     "search",
