@@ -20,15 +20,15 @@ const config = {
     break: 100,
   },
 
-  reporters: ['html', 'clear-text', 'progress'],
+  reporters: ['html', 'json', 'clear-text', 'progress'],
   htmlReporter: {
-    fileName: 'var/tests/mutation/index.html',
+    fileName: 'var/reports/mutation/index.html',
   },
   jsonReporter: {
-    fileName: 'var/tests/mutation/report.json',
+    fileName: 'var/reports/mutation/report.json',
   },
 
-  tempDirName: 'var/tests/.stryker-tmp',
+  tempDirName: 'var/temp/stryker',
 };
 
 export default config;
