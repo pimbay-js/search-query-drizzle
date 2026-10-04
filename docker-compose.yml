@@ -4,6 +4,19 @@ x-service-base: &service-base
     - .:/app
 
 services:
+  # ── MariaDB 11 — the only engine here besides SQLite; each test file creates its own database, hence root.
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: 'root'
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: '3s'
+      timeout: '3s'
+      retries: 20
+
   # ── Node 22 + drizzle-orm 0.44.0 (peerDependencies floor) ──
   node22-drizzle44:
     <<: *service-base
@@ -12,8 +25,12 @@ services:
       dockerfile: docker/Dockerfile
       args:
         NODE_VERSION: 22
+    depends_on:
+      mariadb:
+        condition: service_healthy
     environment:
       DRIZZLE_VERSION: 0.44.0
+      SEARCH_QUERY_MYSQL_URL: 'mysql://root:root@mariadb:3306'
 
   # ── Node 22 + drizzle-orm 0.45.2 (current latest) ──
   node22-drizzle45:
@@ -23,8 +40,12 @@ services:
       dockerfile: docker/Dockerfile
       args:
         NODE_VERSION: 22
+    depends_on:
+      mariadb:
+        condition: service_healthy
     environment:
       DRIZZLE_VERSION: 0.45.2
+      SEARCH_QUERY_MYSQL_URL: 'mysql://root:root@mariadb:3306'
 
   # ── Node 24 + drizzle-orm 0.44.0 ──
   node24-drizzle44:

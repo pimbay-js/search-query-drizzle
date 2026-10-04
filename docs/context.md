@@ -26,4 +26,3 @@ Nothing in progress right now.
 ## Ideas / future plans
 
 - A `CursorAdapter` implementation once its constructor shape (explicit keyset column(s)) is resolved.
-- `escapeLikeValue`/`likeEscapeClause` currently assume a single-char escape sequence; revisit if a consumer needs a multi-char one.

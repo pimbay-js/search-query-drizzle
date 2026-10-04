@@ -46,6 +46,44 @@ jobs:
       - name: Functional tests
         run: npm run test:functional
 
+  test-mariadb:
+    name: Node 22 + drizzle-orm ${{ matrix.drizzle-version }} + MariaDB 11
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        drizzle-version: ['0.44.0', '0.45.2']
+      fail-fast: false
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      SEARCH_QUERY_MYSQL_URL: 'mysql://root:root@127.0.0.1:3306'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      - run: npm install
+
+      - name: Pin drizzle-orm to matrix version
+        run: npm install --no-save "drizzle-orm@${{ matrix.drizzle-version }}"
+
+      - name: Functional tests
+        run: npm run test:functional
+
   coverage-and-mutation:
     name: Coverage + mutation testing (Node 22 + drizzle-orm 0.45.2)
     runs-on: ubuntu-latest
@@ -94,9 +132,15 @@ jobs:
       - name: Format check
         run: npm run js:format
 
+      - name: Build
+        run: npm run js:build
+
+      - name: Manifest validation
+        run: npx --yes publint@0.3.25 --strict
+
   sync:
     if: github.event_name == 'push'
-    needs: [test]
+    needs: [test, test-mariadb, static-analysis, coverage-and-mutation]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

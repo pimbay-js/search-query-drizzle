@@ -88,7 +88,52 @@ await db
 `and()`/`or()` from `drizzle-orm` treat `undefined` as "no condition", and `buildSearchTermsCondition`/`buildSearchTermsConditionFromString` return `undefined` when no terms survive `minLength` — so this composes directly into an existing `where()` without a null check.
 
 Equals/likes are OR-grouped, negated equals/likes are AND-grouped, and the two groups are ANDed together.
-LIKE values are escaped (`escapeLikeValue`, also exported) before the wildcard character is turned into `%`, and every `LIKE`/`NOT LIKE` carries an explicit `ESCAPE '\'` clause — redundant-but-harmless on Postgres/MySQL/MariaDB (which already default to `\`), required on SQLite/SQL Server/Oracle (which don't).
+Negated terms also keep rows whose column is `NULL` (`-red` means "not red", and a row with no value isn't red); `createSearchTermsConfig({ ignoredTermsMatchNull: false })` restores the stricter reading.
+Each wildcard marker in `likeMarkers` becomes `%`, and the text between markers is escaped (`escapeLikeValue`, also exported), so a marker works even if it is itself `%` or `_`.
+Every `LIKE`/`NOT LIKE` carries an explicit `ESCAPE '~'` clause — `~` rather than `\`, because a backslash has no spelling that MySQL/MariaDB and PostgreSQL/SQLite all accept.
+If you call `escapeLikeValue` yourself, always pair it with `likeEscapeClause()`: no engine treats `~` as an implicit escape character.
+
+For a `LIKE` of your own, `containsPattern`, `startsWithPattern` and `endsWithPattern` escape the value and put the `%` around it, so the input can't act as a wildcard:
+
+```ts
+import { containsPattern, likeEscapeClause } from '@pimbay/search-query-drizzle';
+import { sql } from 'drizzle-orm';
+import { db } from './db.js';
+import { widgets } from './schema.js';
+
+await db
+  .select()
+  .from(widgets)
+  .where(sql`${widgets.name} LIKE ${containsPattern(input)} ${sql.raw(likeEscapeClause())}`);
+```
+
+## Testing
+
+```bash
+npm run test:all        # every combination in the table below
+npm run test:coverage   # vitest run --coverage test/unit test/functional
+npm run test:mutation   # stryker run — min MSI 100%
+```
+
+Each combo runs `npm install` in its own Docker container and then pins `drizzle-orm` to the exact version in the table.
+Requires Docker and Docker Compose locally.
+
+Functional tests run against in-memory SQLite (`better-sqlite3`) in every combination, and additionally against MariaDB 11 in the two Node 22 ones.
+
+`0.44.0` is the `peerDependencies` floor, `0.45.2` the current release.
+
+| Command                     | Node | drizzle-orm | SQLite | MariaDB 11 |
+| :-------------------------- | :--- | :---------- | :----: | :--------: |
+| `npm run test:22-drizzle44` | 22   | `0.44.0`    |   ✅   |     ✅     |
+| `npm run test:22-drizzle45` | 22   | `0.45.2`    |   ✅   |     ✅     |
+| `npm run test:24-drizzle44` | 24   | `0.44.0`    |   ✅   |     —      |
+| `npm run test:24-drizzle45` | 24   | `0.45.2`    |   ✅   |     —      |
+| `npm run test:26-drizzle44` | 26   | `0.44.0`    |   ✅   |     —      |
+| `npm run test:26-drizzle45` | 26   | `0.45.2`    |   ✅   |     —      |
+
+`test:coverage` and `test:mutation` run without `SEARCH_QUERY_MYSQL_URL`, so they are SQLite-only.
+The Node 22 rows `depends_on` a `mariadb` service that `docker compose` starts and health-checks for you; stop it again with `docker compose down`.
+Outside Docker, `npm run test:functional` skips the MariaDB half unless you point `SEARCH_QUERY_MYSQL_URL` at a server yourself — a URL without a database and with a user allowed to create one, e.g. `mysql://root:root@127.0.0.1:3306`.
 
 ## Development Helpers
 
@@ -105,6 +150,13 @@ npm run js:typecheck  # tsc --noEmit
 - **[docs/context.md](docs/context.md)** — current working state: what's in progress, what's next.
 - **[docs/DECISIONS.md](docs/DECISIONS.md)** — why things are built the way they are, in the order the decisions were made.
 - **[docs/CHANGELOG.md](docs/CHANGELOG.md)** — version history.
+
+## Packages in the stack
+
+| Package                        | Description                                                                      |
+| ------------------------------ | -------------------------------------------------------------------------------- |
+| `@pimbay/search-query`         | Framework-agnostic pagination and search-terms parsing this package builds on.   |
+| `@pimbay/search-query-drizzle` | This package — Drizzle ORM adapters and a search-terms-to-SQL condition builder. |
 
 ## License
 
