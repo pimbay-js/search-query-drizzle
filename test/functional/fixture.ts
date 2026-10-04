@@ -26,6 +26,12 @@ export const productTag = sqliteTable('product_tag', {
   tagId: integer('tag_id').notNull(),
 });
 
+/** `label` is nullable, unlike `product.name` — for negated terms against rows with no value. */
+export const widget = sqliteTable('widget', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  label: text('label'),
+});
+
 export const productRelations = relations(product, ({ many }) => ({
   productTags: many(productTag),
 }));
@@ -35,7 +41,7 @@ export const productTagRelations = relations(productTag, ({ one }) => ({
   tag: one(tag, { fields: [productTag.tagId], references: [tag.id] }),
 }));
 
-const schema = { product, tag, productTag, productRelations, productTagRelations };
+const schema = { product, tag, productTag, widget, productRelations, productTagRelations };
 
 export type Db = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -46,6 +52,7 @@ export function createDb(): Db {
         CREATE TABLE product (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, price INTEGER NOT NULL);
         CREATE TABLE tag (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL);
         CREATE TABLE product_tag (product_id INTEGER NOT NULL, tag_id INTEGER NOT NULL);
+        CREATE TABLE widget (id INTEGER PRIMARY KEY AUTOINCREMENT, label TEXT);
     `);
 
   return drizzle(sqlite, { schema });

@@ -10,21 +10,21 @@ License: Unlicense. Minimum Node version: 22.
 
 ```bash
 npm install
-npm run js:build           tsc -p tsconfig.build.json → dist/
-npm run js:format          prettier --check . — check only
-npm run js:format:fix      prettier --write .
+npm run js:build          # tsc -p tsconfig.build.json → dist/
+npm run js:format         # prettier --check . — check only
+npm run js:format:fix     # prettier --write .
 npm run js:lint           # eslint src test — check only
 npm run js:lint:fix       # eslint src test --fix
 npm run js:typecheck      # tsc --noEmit
-npm run test:22-drizzle44 # docker compose — Node 22 + drizzle-orm 0.44.0 (peerDependencies floor)
-npm run test:22-drizzle45 # docker compose — Node 22 + drizzle-orm 0.45.2 (current latest)
+npm run test:22-drizzle44 # docker compose — Node 22 + drizzle-orm 0.44.0 (peerDependencies floor) + MariaDB 11
+npm run test:22-drizzle45 # docker compose — Node 22 + drizzle-orm 0.45.2 (current latest) + MariaDB 11
 npm run test:24-drizzle44 # docker compose — Node 24 + drizzle-orm 0.44.0
 npm run test:24-drizzle45 # docker compose — Node 24 + drizzle-orm 0.45.2
 npm run test:26-drizzle44 # docker compose — Node 26 + drizzle-orm 0.44.0
 npm run test:26-drizzle45 # docker compose — Node 26 + drizzle-orm 0.45.2
 npm run test:all          # all six test:*-drizzle* combos
 npm run test:coverage     # vitest run --coverage test/unit test/functional
-npm run test:functional   # vitest run test/functional (real SQLite via better-sqlite3)
+npm run test:functional   # vitest run test/functional (real SQLite; MariaDB too when SEARCH_QUERY_MYSQL_URL is set)
 npm run test:mutation     # stryker run — MSI 100 gate
 npm run test:unit         # vitest run test/unit
 ```
@@ -39,8 +39,8 @@ A bare command never mutates — only the `:fix` variant writes to disk.
 - **Named exports only** — default exports are forbidden (enforced by lint rule).
 - **`readonly` fields** by default on classes; prefer immutable result objects over mutation.
 - **One class/concept per file**, barrel-exported from `src/index.ts`.
-- **Comments** only where they explain a non-trivial decision or _why_ — never restate _what_ the code already says. Don't comment obvious lines. Keep to 1-2 lines; more only for genuinely complex logic. Always in English.
-- **Markdown**: semantic linebreaks — break at sentence end, never inside a list item.
+- **Comments** only where they explain a non-trivial decision or _why_ — never restate _what_ the code already says. Don't comment obvious lines. Keep to 1-2 lines; more only for genuinely complex logic. Always in English. Wrap at 120 columns.
+- **Markdown** (`.md` only): semantic linebreaks — break at sentence end, never inside a list item.
 - **Docs discipline**: no "Project Layout" in READMEs — the tree speaks for itself.
 
 ## Architecture
@@ -71,6 +71,7 @@ Always applies — every repo here is published on npm. Every exported-symbol ch
 - **Vitest**, `test/unit/` always; `test/functional/` (real SQLite in-memory, via `better-sqlite3`) for anything that needs real SQL execution rather than a hand-mocked query builder.
 - **`test/unit/`** — every collaborator faked (`LimitOffsetQuery` fakes, a `PgDialect` for SQL rendering), or the module has no external collaborator (`sqlHelper.ts`).
 - **`test/functional/`** — runs against a real SQLite in-memory connection — don't mock what it can spin up for real.
+- **MariaDB 11** — `searchTermsQuery` functional scenarios also run on MariaDB when `SEARCH_QUERY_MYSQL_URL` is set (docker-compose Node 22 services, CI `test-mariadb`), and skip otherwise. Each test file creates its own database, since vitest runs files in parallel.
 - **Coverage: 100%** — hard gate; a dropped coverage change comes with new tests, not an exclusion.
 - **Mutation testing: Stryker, min MSI 100%** (`npm run test:mutation`) — an escaped mutant needs a stronger assertion, not a suppressed mutator.
 

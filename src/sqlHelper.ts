@@ -7,20 +7,39 @@
  * For the full license information, see the LICENSE file.
  */
 
-/** Postgres/MySQL/MariaDB default `LIKE` to this escape char implicitly; others need {@link likeEscapeClause} explicitly. */
-export const DEFAULT_LIKE_ESCAPE_CHAR = '\\';
+/**
+ * Deliberately not a backslash and deliberately not configurable: a backslash has no spelling that is valid on
+ * MySQL/MariaDB and on PostgreSQL/SQLite at once. See docs/DECISIONS.md.
+ */
+const LIKE_ESCAPE_CHAR = '~';
 
 /**
- * Escapes `%`/`_` for a LIKE pattern; the escape char itself must be neutralized first or an
- * existing `\` would double-escape wrong.
+ * Escapes `%`/`_` for a LIKE pattern; the escape char itself must be neutralized first or one already present in
+ * the value would double-escape wrong.
  */
-export function escapeLikeValue(value: string, escapeChar = DEFAULT_LIKE_ESCAPE_CHAR): string {
-  const withEscapedEscapeChar = value.replaceAll(escapeChar, escapeChar + escapeChar);
+export function escapeLikeValue(value: string): string {
+  const withEscapedEscapeChar = value.replaceAll(LIKE_ESCAPE_CHAR, LIKE_ESCAPE_CHAR + LIKE_ESCAPE_CHAR);
 
-  return withEscapedEscapeChar.replaceAll('_', `${escapeChar}_`).replaceAll('%', `${escapeChar}%`);
+  return withEscapedEscapeChar.replaceAll('_', `${LIKE_ESCAPE_CHAR}_`).replaceAll('%', `${LIKE_ESCAPE_CHAR}%`);
 }
 
-/** Renders the `ESCAPE` clause to append to a raw `LIKE`/`NOT LIKE` fragment. */
-export function likeEscapeClause(escapeChar = DEFAULT_LIKE_ESCAPE_CHAR): string {
-  return `ESCAPE '${escapeChar.replaceAll("'", "''")}'`;
+/**
+ * Always emitted, on every engine: SQLite, SQL Server and Oracle define no implicit escape char at all, and
+ * MySQL/MariaDB's implicit one is the backslash this package does not use.
+ */
+export function likeEscapeClause(): string {
+  return `ESCAPE '${LIKE_ESCAPE_CHAR}'`;
+}
+
+/** The three below return a pattern for `LIKE`; pair each with `likeEscapeClause()`. */
+export function containsPattern(value: string): string {
+  return `%${escapeLikeValue(value)}%`;
+}
+
+export function startsWithPattern(value: string): string {
+  return `${escapeLikeValue(value)}%`;
+}
+
+export function endsWithPattern(value: string): string {
+  return `%${escapeLikeValue(value)}`;
 }
