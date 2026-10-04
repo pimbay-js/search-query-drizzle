@@ -25,49 +25,80 @@ jobs:
           git merge --no-ff origin/contrib -m "chore: merge contrib into main"
           git push origin main
 
-      - name: Tag release if VERSION carries an untagged version
-        id: tag
+      - name: Sync main to GitHub
+        run: |
+          git remote add github "https://x-access-token:${{ secrets.GH_PUSH_TOKEN }}@github.com/pimbay-js/search-query-drizzle.git"
+          git push github main
+
+      - name: Read the releasable version
+        id: release
         run: |
           if [ ! -f VERSION ]; then
-            echo "no VERSION file — skipping tag" >&2
+            echo "no VERSION file — nothing to release" >&2
+            echo "release=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           VERSION="$(cat VERSION | tr -d '[:space:]')"
 
           if [ -z "$VERSION" ] || [ "$VERSION" = "0.0.0" ]; then
-            echo "no releasable version (missing, or 0.0.0 placeholder) — skipping tag" >&2
-            echo "new_tag=false" >> "$GITHUB_OUTPUT"
+            echo "no releasable version (missing, or 0.0.0 placeholder)" >&2
+            echo "release=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          TAG="v${VERSION}"
+
+          PACKAGE_VERSION="$(sed -n 's/^  "version": "\([^"]*\)".*/\1/p' package.json)"
+
+          if [ "$PACKAGE_VERSION" != "$VERSION" ]; then
+            echo "VERSION says ${VERSION} but package.json says ${PACKAGE_VERSION} — refusing to release" >&2
+            exit 1
+          fi
+
+          echo "release=true" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        if: steps.release.outputs.release == 'true'
+        run: npm install
+
+      - name: Build
+        if: steps.release.outputs.release == 'true'
+        run: npm run js:build
+
+      - name: Publish to npm
+        if: steps.release.outputs.release == 'true'
+        run: |
+          PACKAGE="$(node -p "require('./package.json').name")"
+          VERSION="${{ steps.release.outputs.version }}"
+
+          if npm view "${PACKAGE}@${VERSION}" version > /dev/null 2>&1; then
+            echo "${PACKAGE}@${VERSION} is already on npm — nothing to publish"
+            exit 0
+          fi
+
+          if [ -z "${NODE_AUTH_TOKEN}" ]; then
+            echo "NPM_TOKEN secret is not set — cannot publish to npm" >&2
+            exit 1
+          fi
+
+          npm config set "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}"
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Tag release
+        if: steps.release.outputs.release == 'true'
+        run: |
+          TAG="${{ steps.release.outputs.tag }}"
 
           if git ls-remote --tags origin "refs/tags/${TAG}" | grep -q .; then
             echo "${TAG} already exists on Codeberg — nothing to do"
-            echo "new_tag=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           git tag -a "${TAG}" -m "${TAG}"
           git push origin "${TAG}"
-          echo "new_tag=true" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Sync main and tags to GitHub
-        run: |
-          git remote add github "https://x-access-token:${{ secrets.GH_PUSH_TOKEN }}@github.com/pimbay-js/search-query-drizzle.git"
-          git push github main
-          git push github --tags
-
-      - name: Install dependencies
-        if: steps.tag.outputs.new_tag == 'true'
-        run: npm install
-
-      - name: Build
-        if: steps.tag.outputs.new_tag == 'true'
-        run: npm run js:build
-
-      - name: Publish to npm
-        if: steps.tag.outputs.new_tag == 'true'
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Sync tags to GitHub
+        if: steps.release.outputs.release == 'true'
+        run: git push github --tags
